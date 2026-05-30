@@ -1,0 +1,125 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "srvcs-populationstddev",
+    "description": "",
+    "license": {
+      "name": "Apache-2.0",
+      "identifier": "Apache-2.0"
+    },
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "tags": [],
+        "summary": "`GET /` — service identity (srvcs service standard).",
+        "operationId": "index",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Info"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [],
+        "summary": "`POST /` — the population standard deviation of a list of numbers, as an\n`f64`.",
+        "description": "This service owns the *control flow* but delegates every computation to its\ndependencies, exactly as specified:\n\n1. `v = (call populationvariance {\"values\": values}).result`;\n2. `result = (call sqrt {\"value\": v}).result`.\n\nThis is a pure orchestrator: it does no validation of its own and never\ncalls `srvcs-isnumber` directly. An empty list or a non-numeric element is\nrejected by `srvcs-populationvariance`, whose `422` is forwarded. If a\ndependency is unreachable it reports itself degraded (`503`).",
+        "operationId": "evaluate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PopulationStddevResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "a dependency rejected the input (forwarded), e.g. an empty list or a non-numeric element"
+          },
+          "500": {
+            "description": "a dependency returned a malformed result"
+          },
+          "503": {
+            "description": "a dependency is unavailable"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "EvalRequest": {
+        "type": "object",
+        "required": [
+          "values"
+        ],
+        "properties": {
+          "values": {
+            "type": "object",
+            "description": "The list of numbers whose population standard deviation to compute.\nValidation (e.g. an empty list, or a non-numeric element) is propagated\nfrom `srvcs-populationvariance`'s `422`."
+          }
+        }
+      },
+      "Info": {
+        "type": "object",
+        "required": [
+          "service",
+          "concern",
+          "depends_on"
+        ],
+        "properties": {
+          "concern": {
+            "type": "string"
+          },
+          "depends_on": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "service": {
+            "type": "string"
+          }
+        }
+      },
+      "PopulationStddevResponse": {
+        "type": "object",
+        "required": [
+          "values",
+          "result"
+        ],
+        "properties": {
+          "result": {
+            "type": "number",
+            "format": "double",
+            "description": "The population standard deviation, as an `f64`."
+          },
+          "values": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  }
+}
